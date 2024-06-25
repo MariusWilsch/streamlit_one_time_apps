@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
+AUTOMATION_HOURS = 10
+AUTOMATION_COST = 400
+
 # Set page title
 st.set_page_config(page_title="AI Automation Benefits", layout="wide")
 
@@ -15,28 +18,21 @@ hourly_rate = st.sidebar.slider(
     "**Hourly rate (€)**", min_value=40, max_value=80, value=40, step=5
 )
 
-
-# Add information about AI saving an extra person
-st.sidebar.markdown(
-    "**Note:** <br> AI automation saves the need for an extra person.",
-    unsafe_allow_html=True,
-)
-
 # Create data
 months = list(range(1, 13))
 time_data = pd.DataFrame(
     {
         "Month": months,
-        "Without AI (hours)": [base_hours * 2 * m for m in months],
-        "With AI (hours)": [base_hours * m for m in months],
+        "Without AI (hours)": [base_hours * m for m in months],
+        "With AI (hours)": [AUTOMATION_HOURS * m for m in months],
     }
 )
 
 cost_data = pd.DataFrame(
     {
         "Month": months,
-        "Without AI (€)": [base_hours * hourly_rate * 2 * m for m in months],
-        "With AI (€)": [base_hours * hourly_rate * m for m in months],
+        "Without AI (€)": [base_hours * hourly_rate * m for m in months],
+        "With AI (€)": [AUTOMATION_COST * m for m in months],  # Fixed this line
     }
 )
 
@@ -94,21 +90,9 @@ cost_chart = (
     .interactive()
 )
 
-cost_annotation = (
-    alt.Chart(pd.DataFrame({"x": [6], "y": [max(cost_data_melted["Cost"]) * 0.9]}))
-    .mark_text(
-        text=f"Cost calculation: Hours x €{hourly_rate}/hour",
-        align="left",
-        baseline="middle",
-        fontSize=12,
-        color="black",
-    )
-    .encode(x="x:O", y="y:Q")
-)
-
 # Combine charts with annotations
 final_time_chart = time_chart
-final_cost_chart = cost_chart + cost_annotation
+final_cost_chart = cost_chart
 
 dev_hourly_rate = 30
 base_dev_hours = 53
@@ -144,9 +128,10 @@ with tab1:  # Time and Cost Savings
 
     st.write(
         f"""
-    These charts show the time and cost savings from using AI automation for call summarization over 12 months.
+    In dieser Ansicht vergleichen wir die Zeit- und Kostenersparnis, wenn die zweite Person, die bei den Anrufen zuhören muss, durch KI ersetzt wird.
     """
     )
+    st.divider()
     # Display charts side by side
     col1, col2 = st.columns(2)
     with col1:
@@ -156,23 +141,31 @@ with tab1:  # Time and Cost Savings
 
     # Create tables for Time and Cost Savings
     time_savings_data = {
-        "Scenario": ["Without AI", "With AI", "Total Savings"],
-        "Variables": [f"{base_hours} hours", "10 hours", f"{base_hours - 10} hours"],
-        "Time (hours)": [base_hours * 2 * 12, base_hours * 12, base_hours * 12],
+        "Scenario": ["Assistent", "Wartungstunden", "Ersparnis"],
+        "Variables": [
+            f"{base_hours} hours/month",
+            f"{AUTOMATION_HOURS} hours/month",
+            f"{base_hours - AUTOMATION_HOURS} hours/month",
+        ],
+        "Time (hours)": [
+            base_hours * 12,
+            AUTOMATION_HOURS * 12,
+            (base_hours - AUTOMATION_HOURS) * 12,
+        ],
     }
     time_savings_df = pd.DataFrame(time_savings_data)
 
     cost_savings_data = {
-        "Scenario": ["Without AI", "With AI", "Total Savings"],
+        "Scenario": ["Assistent", "Wartungstunden", "Ersparnis"],
         "Variables": [
-            f"€{hourly_rate}/hour",
-            "€400/month",
-            f"€{hourly_rate * base_hours - 400}/month",
+            f"€{base_hours * hourly_rate}/month",
+            f"€{AUTOMATION_COST}/month",
+            f"€{(base_hours * hourly_rate) - AUTOMATION_COST}/month",
         ],
         "Cost (€)": [
-            base_hours * hourly_rate * 2 * 12,
             base_hours * hourly_rate * 12,
-            base_hours * hourly_rate * 12,
+            AUTOMATION_COST * 12,
+            (base_hours * hourly_rate * 12) - (AUTOMATION_COST * 12),
         ],
     }
     cost_savings_df = pd.DataFrame(cost_savings_data)
@@ -181,12 +174,12 @@ with tab1:  # Time and Cost Savings
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Time Savings")
-        st.write("Cumulative time over 12 months:")
+        st.write("Anrufstunden über 12 Monate:")
         st.table(time_savings_df.style.format({"Time (hours)": "{:,.0f}"}))
 
     with col2:
         st.subheader("Cost Savings")
-        st.write("Cumulative cost over 12 months:")
+        st.write("Kostenüberschuss über 12 Monate:")
         st.table(cost_savings_df.style.format({"Cost (€)": "{:,.0f}"}))
 
 with tab2:
